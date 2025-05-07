@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.Net.Http.Headers;
 using Netcorext.Contracts;
 
 namespace Netcorext.Extensions.Grpc.Helpers;
@@ -7,7 +8,7 @@ public static class ContextStateHelper
 {
     public static string? GetAuthorizationToken(this IContextState context, IHeaderDictionary? headers)
     {
-        if (headers?.TryGetValue("Authorization", out var authorization) == true && !string.IsNullOrWhiteSpace(authorization))
+        if (headers?.TryGetValue(HeaderNames.Authorization, out var authorization) == true && !string.IsNullOrWhiteSpace(authorization))
             return authorization;
         if (context.User?.Identity == null)
             return null;

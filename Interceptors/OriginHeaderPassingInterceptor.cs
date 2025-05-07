@@ -1,5 +1,7 @@
 using Grpc.Core;
 using Grpc.Core.Interceptors;
+using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
 using Netcorext.Contracts;
 using Netcorext.Extensions.Grpc.Helpers;
 using Netcorext.Extensions.Grpc.Options;
@@ -26,11 +28,15 @@ public class OriginHeaderPassingInterceptor : Interceptor
         var entries = _httpContextAccessor.HttpContext?.Request.Headers
                                           .Where(_options.Handler)
                                           .Select(t => new Metadata.Entry(t.Key.ToLower(), t.Value))
-                                          .ToArray();
+                                          .ToList() ?? new List<Metadata.Entry>();
 
         var authorization = _contextState.GetAuthorizationToken(_httpContextAccessor.HttpContext?.Request.Headers);
+        var authorizationHeader = new KeyValuePair<string, StringValues>(HeaderNames.Authorization, authorization);
 
-        if (entries?.Any() != true)
+        if (_options.Handler(authorizationHeader))
+            entries.Add(new Metadata.Entry(authorizationHeader.Key, authorizationHeader.Value));
+
+        if (entries.Count == 0)
             return continuation(request, context);
 
         var metadata = new Metadata();
@@ -52,11 +58,15 @@ public class OriginHeaderPassingInterceptor : Interceptor
         var entries = _httpContextAccessor.HttpContext?.Request.Headers
                                           .Where(_options.Handler)
                                           .Select(t => new Metadata.Entry(t.Key.ToLower(), t.Value))
-                                          .ToArray();
+                                          .ToList() ?? new List<Metadata.Entry>();
 
         var authorization = _contextState.GetAuthorizationToken(_httpContextAccessor.HttpContext?.Request.Headers);
+        var authorizationHeader = new KeyValuePair<string, StringValues>(HeaderNames.Authorization, authorization);
 
-        if (entries?.Any() != true)
+        if (_options.Handler(authorizationHeader))
+            entries.Add(new Metadata.Entry(authorizationHeader.Key, authorizationHeader.Value));
+
+        if (entries.Count == 0)
             return continuation(request, context);
 
         var metadata = new Metadata();

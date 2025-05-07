@@ -1,5 +1,6 @@
 using Grpc.Core;
 using Grpc.Core.Interceptors;
+using Microsoft.Net.Http.Headers;
 using Netcorext.Contracts;
 using Netcorext.Extensions.Grpc.Helpers;
 
@@ -25,7 +26,7 @@ public class AuthorizationHeaderInterceptor : Interceptor
         if (string.IsNullOrWhiteSpace(authorization))
             return continuation(request, context);
 
-        var metadata = new Metadata { { "Authorization", $"{authorization}" } };
+        var metadata = new Metadata { { HeaderNames.Authorization, $"{authorization}" } };
         var options = context.Options.WithHeaders(metadata);
         var newContext = new ClientInterceptorContext<TRequest, TResponse>(context.Method, context.Host, options);
 
@@ -39,7 +40,7 @@ public class AuthorizationHeaderInterceptor : Interceptor
         if (string.IsNullOrWhiteSpace(authorization))
             return continuation(request, context);
 
-        var metadata = new Metadata { { "Authorization", $"{authorization}" } };
+        var metadata = new Metadata { { HeaderNames.Authorization, $"{authorization}" } };
         var options = context.Options.WithHeaders(metadata);
         var newContext = new ClientInterceptorContext<TRequest, TResponse>(context.Method, context.Host, options);
 
