@@ -27,8 +27,28 @@ public class OriginHeaderPassingInterceptor : Interceptor
     {
         var entries = _httpContextAccessor.HttpContext?.Request.Headers
                                           .Where(_options.Handler)
-                                          .Select(t => new Metadata.Entry(t.Key.ToLower(), t.Value))
+                                          .Select(t =>
+                                                  {
+                                                      if (!_options.EnableHeaderEncoding)
+                                                          return new Metadata.Entry(t.Key.ToLower(), t.Value);
+
+                                                      // HTTP2 not supporting non-ASCII characters in header names and values
+                                                      var isKeyAscii = t.Key.All(c => c <= 127);
+
+                                                      if (!isKeyAscii)
+                                                          return null;
+
+                                                      var areValuesAscii = t.Value.All(value => value?.All(c => c <= 127) ?? false);
+
+                                                      if (areValuesAscii)
+                                                          return new Metadata.Entry(t.Key.ToLower(), t.Value);
+
+                                                      var escapedValue = Uri.EscapeDataString(t.Value);
+
+                                                      return new Metadata.Entry(t.Key.ToLower(), escapedValue);
+                                                  })
                                           .ToList() ?? new List<Metadata.Entry>();
+
 
         var authorization = _contextState.GetAuthorizationToken(_httpContextAccessor.HttpContext?.Request.Headers);
         var authorizationHeader = new KeyValuePair<string, StringValues>(HeaderNames.Authorization, authorization);
@@ -43,6 +63,9 @@ public class OriginHeaderPassingInterceptor : Interceptor
 
         foreach (var entry in entries)
         {
+            if (entry == null)
+                continue;
+
             metadata.Add(entry);
         }
 
@@ -57,7 +80,25 @@ public class OriginHeaderPassingInterceptor : Interceptor
     {
         var entries = _httpContextAccessor.HttpContext?.Request.Headers
                                           .Where(_options.Handler)
-                                          .Select(t => new Metadata.Entry(t.Key.ToLower(), t.Value))
+                                          .Select(t =>
+                                                  {
+                                                      if (!_options.EnableHeaderEncoding)
+                                                          return new Metadata.Entry(t.Key.ToLower(), t.Value);
+
+                                                      var isKeyAscii = t.Key.All(c => c <= 127);
+
+                                                      if (!isKeyAscii)
+                                                          return null;
+
+                                                      var areValuesAscii = t.Value.All(value => value?.All(c => c <= 127) ?? false);
+
+                                                      if (areValuesAscii)
+                                                          return new Metadata.Entry(t.Key.ToLower(), t.Value);
+
+                                                      var escapedValue = Uri.EscapeDataString(t.Value);
+
+                                                      return new Metadata.Entry(t.Key.ToLower(), escapedValue);
+                                                  })
                                           .ToList() ?? new List<Metadata.Entry>();
 
         var authorization = _contextState.GetAuthorizationToken(_httpContextAccessor.HttpContext?.Request.Headers);
@@ -73,6 +114,9 @@ public class OriginHeaderPassingInterceptor : Interceptor
 
         foreach (var entry in entries)
         {
+            if (entry == null)
+                continue;
+
             metadata.Add(entry);
         }
 
